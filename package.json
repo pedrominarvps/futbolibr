@@ -10,7 +10,7 @@
   },
   "scripts": {
     "build": "tsup",
-    "start:web": "npm run build && node web/server.js",
+    "start:web": "npm run build && node scripts/dev-server.js",
     "install:browsers": "npx playwright install chromium"
   },
   "keywords": [

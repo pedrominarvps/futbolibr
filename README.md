@@ -118,7 +118,7 @@ PLAYWRIGHT_EXECUTABLE_PATH=/usr/bin/chromium-browser npm run start:web
 
 ### 3) Qué hace ahora el backend demo
 
-`web/server.js` intenta instalar Chromium automáticamente una sola vez (`npx playwright install chromium`) cuando detecta el error de binario faltante. Si sigue fallando, devuelve un `hint` con los pasos anteriores.
+Para desarrollo local usa `npm run start:web` que levanta `scripts/dev-server.js` y sirve directamente `public/index.html`.
 
 
 ## Deploy en Vercel
@@ -130,3 +130,15 @@ Este repo ya incluye estructura compatible con Vercel:
 - `vercel.json` con `outputDirectory: "public"`.
 
 Si tu proyecto fallaba con `No Output Directory named "public" found`, este cambio lo corrige.
+
+
+## Estructura recomendada para Vercel
+
+Para que Vercel detecte rápido el `index.html`, este repo queda ordenado así:
+
+- `public/index.html` (entrada web principal)
+- `public/app.js` y `public/styles.css`
+- `api/agenda.js` (endpoint serverless)
+- `vercel.json` con `outputDirectory: "public"`
+
+Con esto Vercel sirve la web desde `public/` de forma directa.
