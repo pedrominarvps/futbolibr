@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Fútbol Libre · Agenda en vivo</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="layout">
+      <header class="hero">
+        <div class="brand">FÚTBOL LIBRE</div>
+        <h1>Agenda deportiva + Canales en vivo</h1>
+        <p>
+          Diseño estilo streaming inspirado en tu referencia, consumiendo la data real del scraper
+          para renderizar partidos y reproductores.
+        </p>
+        <div class="hero-actions">
+          <button id="refreshBtn">Actualizar agenda</button>
+          <span id="status">Cargando…</span>
+        </div>
+      </header>
+
+      <section>
+        <h2>Canales disponibles</h2>
+        <div id="channels" class="channels-grid"></div>
+      </section>
+    </main>
+
+    <dialog id="playerModal" class="player-modal">
+      <div class="player-header">
+        <h3 id="playerTitle">Canal</h3>
+        <button id="closeModal">Cerrar</button>
+      </div>
+      <div id="playerFrame" class="player-frame"></div>
+    </dialog>
+
+    <script src="./app.js" defer></script>
+  </body>
+</html>
