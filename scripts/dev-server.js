@@ -1,7 +1,7 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
-const { getAgendaSnapshot } = require('../dist/index.js');
+const agendaHandler = require('../api/agenda');
 
 const PORT = process.env.PORT || 4173;
 const publicDir = path.join(__dirname, '..', 'public');
@@ -40,18 +40,7 @@ const server = http.createServer(async (req, res) => {
   const url = req.url || '/';
 
   if (url === '/api/agenda') {
-    try {
-      const data = await getAgendaSnapshot({ executablePath: process.env.PLAYWRIGHT_EXECUTABLE_PATH });
-      res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
-      res.end(JSON.stringify(data));
-    } catch (error) {
-      res.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8' });
-      res.end(JSON.stringify({
-        error: 'No se pudo obtener la agenda en este momento',
-        detail: error instanceof Error ? error.message : 'unknown'
-      }));
-    }
-
+    await agendaHandler(req, res);
     return;
   }
 

@@ -142,3 +142,6 @@ Para que Vercel detecte rápido el `index.html`, este repo queda ordenado así:
 - `vercel.json` con `outputDirectory: "public"`
 
 Con esto Vercel sirve la web desde `public/` de forma directa.
+
+> Nota: si Playwright/Chromium falla en producción, `/api/agenda` responde en modo respaldo (`degraded: true`) con una lista cacheada o canales de emergencia para que la UI nunca quede vacía.
+

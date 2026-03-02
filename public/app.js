@@ -58,11 +58,17 @@ async function loadAgenda() {
     const data = await response.json();
     channelsEl.innerHTML = '';
 
-    data.items.forEach((item) => {
+    const items = Array.isArray(data.items) ? data.items : [];
+
+    items.forEach((item) => {
       channelsEl.appendChild(createCard(item, data.fetchedAt));
     });
 
-    statusEl.textContent = `${data.items.length} canales cargados · fuente ${data.source}`;
+    if (data.degraded) {
+      statusEl.textContent = `Modo respaldo activo · ${items.length} canales`;
+    } else {
+      statusEl.textContent = `${items.length} canales cargados · fuente ${data.source}`;
+    }
   } catch (error) {
     statusEl.textContent = `Error al cargar agenda: ${error instanceof Error ? error.message : 'desconocido'}`;
   } finally {
