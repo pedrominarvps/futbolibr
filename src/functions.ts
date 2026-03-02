@@ -32,32 +32,29 @@ export interface ScraperOptions {
   headless?: boolean;
 }
 
+const CHANNELS_SOURCE_URL = 'https://tvlibree.com/';
+const OLD_SOURCE_URL = 'https://www.pelotalibretv.com/agenda.html';
+
 async function getMatches(browser: ChromiumBrowser): Promise<Match[]> {
   const page = await browser.newPage();
 
   try {
-    await page.goto('https://www.pelotalibretv.com/agenda.html');
-    await page.waitForSelector('div[id="wraper"]');
+    await page.goto(CHANNELS_SOURCE_URL, { waitUntil: 'domcontentloaded' });
+    await page.waitForSelector('a.canal[href*="/en-vivo/"]', { timeout: 20000 });
 
     const results: Match[] = await page.evaluate(() => {
-      const matches: Match[] = [];
-      const links: string[] = [];
+      const links = Array.from(document.querySelectorAll<HTMLAnchorElement>('a.canal[href*="/en-vivo/"]'));
 
-      document.querySelectorAll<HTMLAnchorElement>('ul[class="menu"] li ul li a').forEach((a) => {
-        links.push(a.href);
+      return links.map((link, index) => {
+        const titleElement = link.querySelector<HTMLElement>('.title');
+        const title = titleElement?.innerText?.trim() || link.getAttribute('title') || `Canal ${index + 1}`;
+
+        return {
+          id: index,
+          title,
+          url: new URL(link.getAttribute('href') || '', window.location.origin).toString()
+        };
       });
-
-      document.querySelectorAll<HTMLLIElement>('ul[class="menu"] li').forEach((li, index) => {
-        if (!li.innerText.includes('0p')) {
-          matches.push({
-            id: index,
-            title: li.innerText,
-            url: links[index]
-          });
-        }
-      });
-
-      return matches;
     });
 
     return results;
@@ -78,11 +75,11 @@ async function getLink(url: UrlObject, browser: ChromiumBrowser): Promise<string
       return 'no link yet';
     }
 
-    await page.goto(url.url);
-    await page.waitForSelector('div[class="container"]');
+    await page.goto(url.url, { waitUntil: 'domcontentloaded' });
+    await page.waitForSelector('iframe#iframe, iframe[src*="/html/"]', { timeout: 20000 });
 
     const results: string = await page.evaluate(() => {
-      const iframeElement = document.querySelector<HTMLIFrameElement>('div[class="embed-responsive embed-responsive-16by9"] iframe');
+      const iframeElement = document.querySelector<HTMLIFrameElement>('iframe#iframe, iframe[src*="/html/"]');
       return iframeElement ? iframeElement.outerHTML : '';
     });
 
@@ -126,7 +123,7 @@ export async function getAgendaSnapshot(options: ScraperOptions = {}): Promise<A
 
   return {
     fetchedAt: new Date().toISOString(),
-    source: 'https://www.pelotalibretv.com/agenda.html',
+    source: CHANNELS_SOURCE_URL,
     items
   };
 }
@@ -170,3 +167,5 @@ export function diffAgendaSnapshots(previous: AgendaSnapshot, current: AgendaSna
     changed
   };
 }
+
+export const LEGACY_SOURCE_URL = OLD_SOURCE_URL;

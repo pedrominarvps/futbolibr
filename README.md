@@ -42,7 +42,7 @@ The endpoint response shape is:
 ```json
 {
   "fetchedAt": "2026-01-12T18:21:10.456Z",
-  "source": "https://www.pelotalibretv.com/agenda.html",
+  "source": "https://tvlibree.com/",
   "items": [
     {
       "id": 1,
