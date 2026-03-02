@@ -6,6 +6,27 @@ interface Match {
   url: string;
 }
 
+export interface MatchEmbed {
+  id: number;
+  title: string;
+  iframe: string;
+}
+
+export interface AgendaSnapshot {
+  fetchedAt: string;
+  source: string;
+  items: MatchEmbed[];
+}
+
+export interface AgendaDiff {
+  added: MatchEmbed[];
+  removed: MatchEmbed[];
+  changed: Array<{
+    before: MatchEmbed;
+    after: MatchEmbed;
+  }>;
+}
+
 async function getMatches(browser: ChromiumBrowser): Promise<Match[]> {
   const page = await browser.newPage();
   await page.goto('https://www.pelotalibretv.com/agenda.html');
@@ -15,7 +36,7 @@ async function getMatches(browser: ChromiumBrowser): Promise<Match[]> {
     const matches: Match[] = [];
     const links: string[] = [];
 
-    document.querySelectorAll<HTMLAnchorElement>('ul[class="menu"] li ul li a').forEach((a, index) => {
+    document.querySelectorAll<HTMLAnchorElement>('ul[class="menu"] li ul li a').forEach((a) => {
       links.push(a.href);
     });
 
@@ -32,6 +53,7 @@ async function getMatches(browser: ChromiumBrowser): Promise<Match[]> {
     return matches;
   });
 
+  await page.close();
   return results;
 }
 
@@ -41,11 +63,13 @@ interface UrlObject {
 
 async function getLink(url: UrlObject, browser: ChromiumBrowser): Promise<string> {
   const page = await browser.newPage();
+
   if (url.url === undefined) {
-    return 'no link yet'
-  } else {
-    await page.goto(url.url)
+    await page.close();
+    return 'no link yet';
   }
+
+  await page.goto(url.url);
   await page.waitForSelector('div[class="container"]');
 
   const results: string = await page.evaluate(() => {
@@ -53,26 +77,82 @@ async function getLink(url: UrlObject, browser: ChromiumBrowser): Promise<string
     return iframeElement ? iframeElement.outerHTML : '';
   });
 
+  await page.close();
   return results;
 }
 
-export async function getData() {
-  const browser = await chromium.launch()
-  const matches = await getMatches(browser)
-  let links = []
+export async function getData(): Promise<MatchEmbed[]> {
+  const browser = await chromium.launch();
 
-  for await (const match of matches) {
-    const contenido = await getLink(match, browser)
+  try {
+    const matches = await getMatches(browser);
+    const links: MatchEmbed[] = [];
 
-    links.push({
-      id: match.id,
-      title: match.title,
-      iframe: contenido
-    })
+    for await (const match of matches) {
+      const contenido = await getLink(match, browser);
+
+      links.push({
+        id: match.id,
+        title: match.title,
+        iframe: contenido
+      });
+    }
+
+    return links;
+  } finally {
+    await browser.close();
   }
-  
-  // console.log(links)
-  
-  await browser.close()
-  return links
+}
+
+/**
+ * Backend/API helper: shape ready to return as JSON payload.
+ */
+export async function getAgendaSnapshot(): Promise<AgendaSnapshot> {
+  const items = await getData();
+
+  return {
+    fetchedAt: new Date().toISOString(),
+    source: 'https://www.pelotalibretv.com/agenda.html',
+    items
+  };
+}
+
+/**
+ * Monitoring helper: compare two snapshots and return adds/removes/changes.
+ */
+export function diffAgendaSnapshots(previous: AgendaSnapshot, current: AgendaSnapshot): AgendaDiff {
+  const previousById = new Map(previous.items.map((item) => [item.id, item]));
+  const currentById = new Map(current.items.map((item) => [item.id, item]));
+
+  const added: MatchEmbed[] = [];
+  const removed: MatchEmbed[] = [];
+  const changed: Array<{ before: MatchEmbed; after: MatchEmbed }> = [];
+
+  for (const [id, currentItem] of currentById) {
+    const previousItem = previousById.get(id);
+
+    if (!previousItem) {
+      added.push(currentItem);
+      continue;
+    }
+
+    if (previousItem.title !== currentItem.title || previousItem.iframe !== currentItem.iframe) {
+      changed.push({
+        before: previousItem,
+        after: currentItem
+      });
+    }
+  }
+
+  for (const [id, previousItem] of previousById) {
+    if (!currentById.has(id)) {
+      removed.push(previousItem);
+    }
+  }
+
+  return {
+    added,
+    removed,
+    changed
+  };
 }
