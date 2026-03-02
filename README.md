@@ -69,7 +69,53 @@ console.log(changes.removed)
 console.log(changes.changed)
 ```
 
+## Included web demo (streaming-style UI)
+
+This repository now includes a web page inspired by your reference design. It consumes `/api/agenda` and renders channel cards plus a modal player using the iframe from `getAgendaSnapshot()`.
+
+Run it locally:
+
+```cmd
+npm run start:web
+```
+
+Then open:
+
+```cmd
+http://localhost:4173
+```
+
 ## Screenshots
 
 ![cmd terminal](https://i.gyazo.com/7ce2cbdd79511875bd45df367b593aa4.png)
 ![FTV page](https://i.gyazo.com/5a3c7222dbf13fbf5badb31e19fca467.png)
+
+
+## Solución para el error de Chromium/Playwright
+
+Si el endpoint `/api/agenda` responde que falta el binario de Chromium, usa una de estas opciones:
+
+### 1) Local o servidor con permisos de instalación
+
+```cmd
+npx playwright install chromium
+```
+
+También puedes usar el script incluido:
+
+```cmd
+npm run install:browsers
+```
+
+### 2) Entornos limitados (Vercel/Lambda/Cloud Functions)
+
+- Instala navegadores durante build (no en runtime).
+- Si ya tienes Chromium en el sistema, exporta la ruta:
+
+```cmd
+PLAYWRIGHT_EXECUTABLE_PATH=/usr/bin/chromium-browser npm run start:web
+```
+
+### 3) Qué hace ahora el backend demo
+
+`web/server.js` intenta instalar Chromium automáticamente una sola vez (`npx playwright install chromium`) cuando detecta el error de binario faltante. Si sigue fallando, devuelve un `hint` con los pasos anteriores.

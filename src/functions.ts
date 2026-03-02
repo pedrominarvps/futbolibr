@@ -27,34 +27,43 @@ export interface AgendaDiff {
   }>;
 }
 
+export interface ScraperOptions {
+  executablePath?: string;
+  headless?: boolean;
+}
+
 async function getMatches(browser: ChromiumBrowser): Promise<Match[]> {
   const page = await browser.newPage();
-  await page.goto('https://www.pelotalibretv.com/agenda.html');
-  await page.waitForSelector('div[id="wraper"]');
 
-  const results: Match[] = await page.evaluate(() => {
-    const matches: Match[] = [];
-    const links: string[] = [];
+  try {
+    await page.goto('https://www.pelotalibretv.com/agenda.html');
+    await page.waitForSelector('div[id="wraper"]');
 
-    document.querySelectorAll<HTMLAnchorElement>('ul[class="menu"] li ul li a').forEach((a) => {
-      links.push(a.href);
+    const results: Match[] = await page.evaluate(() => {
+      const matches: Match[] = [];
+      const links: string[] = [];
+
+      document.querySelectorAll<HTMLAnchorElement>('ul[class="menu"] li ul li a').forEach((a) => {
+        links.push(a.href);
+      });
+
+      document.querySelectorAll<HTMLLIElement>('ul[class="menu"] li').forEach((li, index) => {
+        if (!li.innerText.includes('0p')) {
+          matches.push({
+            id: index,
+            title: li.innerText,
+            url: links[index]
+          });
+        }
+      });
+
+      return matches;
     });
 
-    document.querySelectorAll<HTMLLIElement>('ul[class="menu"] li').forEach((li, index) => {
-      if (!li.innerText.includes('0p')) {
-        matches.push({
-          id: index,
-          title: li.innerText,
-          url: links[index]
-        });
-      }
-    });
-
-    return matches;
-  });
-
-  await page.close();
-  return results;
+    return results;
+  } finally {
+    await page.close();
+  }
 }
 
 interface UrlObject {
@@ -64,25 +73,30 @@ interface UrlObject {
 async function getLink(url: UrlObject, browser: ChromiumBrowser): Promise<string> {
   const page = await browser.newPage();
 
-  if (url.url === undefined) {
+  try {
+    if (url.url === undefined) {
+      return 'no link yet';
+    }
+
+    await page.goto(url.url);
+    await page.waitForSelector('div[class="container"]');
+
+    const results: string = await page.evaluate(() => {
+      const iframeElement = document.querySelector<HTMLIFrameElement>('div[class="embed-responsive embed-responsive-16by9"] iframe');
+      return iframeElement ? iframeElement.outerHTML : '';
+    });
+
+    return results;
+  } finally {
     await page.close();
-    return 'no link yet';
   }
-
-  await page.goto(url.url);
-  await page.waitForSelector('div[class="container"]');
-
-  const results: string = await page.evaluate(() => {
-    const iframeElement = document.querySelector<HTMLIFrameElement>('div[class="embed-responsive embed-responsive-16by9"] iframe');
-    return iframeElement ? iframeElement.outerHTML : '';
-  });
-
-  await page.close();
-  return results;
 }
 
-export async function getData(): Promise<MatchEmbed[]> {
-  const browser = await chromium.launch();
+export async function getData(options: ScraperOptions = {}): Promise<MatchEmbed[]> {
+  const browser = await chromium.launch({
+    headless: options.headless ?? true,
+    executablePath: options.executablePath
+  });
 
   try {
     const matches = await getMatches(browser);
@@ -107,8 +121,8 @@ export async function getData(): Promise<MatchEmbed[]> {
 /**
  * Backend/API helper: shape ready to return as JSON payload.
  */
-export async function getAgendaSnapshot(): Promise<AgendaSnapshot> {
-  const items = await getData();
+export async function getAgendaSnapshot(options: ScraperOptions = {}): Promise<AgendaSnapshot> {
+  const items = await getData(options);
 
   return {
     fetchedAt: new Date().toISOString(),
