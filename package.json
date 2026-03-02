@@ -9,7 +9,9 @@
     "url": "https://github.com/silentm4gician/fltv-scraper"
   },
   "scripts": {
-    "build": "tsup"
+    "build": "tsup",
+    "start:web": "npm run build && node scripts/dev-server.js",
+    "install:browsers": "npx playwright install chromium"
   },
   "keywords": [
     "futbol libre",
