@@ -36,7 +36,7 @@ async function getMatches(browser: ChromiumBrowser): Promise<Match[]> {
   const page = await browser.newPage();
 
   try {
-    await page.goto('https://www.pelotalibretv.com/agenda.html');
+    await page.goto('https://tvlibree.com/agenda.html');
     await page.waitForSelector('div[id="wraper"]');
 
     const results: Match[] = await page.evaluate(() => {
